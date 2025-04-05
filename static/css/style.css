@@ -1,0 +1,265 @@
+:root {
+    /* Google AI Studio Inspired Dark Theme */
+    --background-color: #1e1e1e; /* Dark grey background */
+    --surface-color: #2d2d2d;    /* Slightly lighter grey for surfaces like cards, inputs */
+    --primary-color: #8ab4f8;     /* Blue for primary actions, selections */
+    --secondary-color: #fdd663;  /* Yellow/Gold for secondary elements */
+    --text-color: #e8eaed;        /* Light grey/off-white for text */
+    --text-secondary-color: #bdc1c6; /* Dimmer text */
+    --border-color: #5f6368;      /* Grey for borders */
+    --error-color: #f28b82;       /* Red for errors */
+    --success-color: #81c995;     /* Green for success messages */
+
+    --font-family: 'Roboto', 'Segoe UI', sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+h1, h2 {
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+label {
+    color: var(--text-secondary-color);
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+input[type="text"] {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+    color-scheme: dark;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3); /* Subtle focus ring */
+}
+
+button {
+    background-color: var(--primary-color);
+    color: var(--background-color); /* High contrast text on button */
+    border: none;
+    padding: 9px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+    font-size: 0.95em; /* Adjusted from 0.95em for icons */
+    line-height: 1; /* Ensure icon vertical alignment */
+    min-width: 40px; /* Ensure buttons have a minimum width */
+    text-align: center;
+}
+
+button:hover {
+    background-color: #a1c6f9; /* Lighter blue on hover */
+}
+
+button:disabled {
+    background-color: var(--surface-color);
+    color: var(--text-secondary-color);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Specific button styling */
+#loadImagesBtn {
+    /* Standard primary style */
+}
+
+#renameBtn,
+#moveBtn {
+    background-color: var(--secondary-color);
+    color: var(--background-color);
+}
+
+#renameBtn:hover,
+#moveBtn:hover {
+    background-color: #ffe082; /* Lighter yellow on hover */
+}
+
+#clearSelectionBtn {
+    background-color: var(--error-color);
+    color: var(--background-color);
+    padding: 5px 10px;
+}
+#clearSelectionBtn:hover {
+    background-color: #f5a8a0; /* Lighter red on hover */
+}
+
+/* Layout helpers from index.html (can be moved here) */
+.container {
+    /* Styles defined in index.html */
+}
+
+.controls {
+    /* Styles defined in index.html */
+    background-color: var(--surface-color);
+    padding: 5px 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    align-items: center; /* Better vertical alignment */
+}
+
+.controls span {
+    color: var(--border-color);
+    margin: 0 5px;
+}
+
+.thumbnail-grid {
+    /* Styles defined in index.html */
+    background-color: var(--surface-color); /* Give the grid a background */
+}
+
+.thumbnail {
+    /* Styles defined in index.html */
+}
+
+.thumbnail img {
+     /* Styles defined in index.html */
+}
+
+.thumbnail.selected {
+     /* Styles defined in index.html */
+}
+
+.thumbnail .filename {
+     /* Styles defined in index.html */
+}
+
+#loadingIndicator {
+    /* Styles defined in index.html */
+    color: var(--primary-color);
+}
+
+#errorMessage {
+     /* Styles defined in index.html */
+}
+
+#successMessage {
+    /* Styles defined in index.html */
+}
+
+/* Modal styles from index.html (can be moved here) */
+.modal {
+    /* Styles defined in index.html */
+}
+
+.modal-content {
+    /* Styles defined in index.html */
+     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+}
+
+.modal-content p {
+    color: var(--text-secondary-color);
+    margin-bottom: 15px;
+}
+
+.close-button {
+    /* Styles defined in index.html */
+}
+
+.close-button:hover,
+.close-button:focus {
+     /* Styles defined in index.html */
+}
+
+.modal-content label {
+     /* Styles defined in index.html */
+}
+
+.modal-content input[type="text"] {
+     /* Styles defined in index.html */
+}
+
+.modal-content button {
+     /* Styles defined in index.html */
+     margin-right: 10px;
+}
+
+/* Style the cancel buttons differently */
+.modal-content button:last-of-type {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.modal-content button:last-of-type:hover {
+    background-color: #444; /* Slightly darker surface on hover */
+}
+
+/* Scrollbar styling (optional, webkit browsers) */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--surface-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* Style for the directory browser dropdown container */
+#dirSelectionContainer {
+    position: relative; /* Needed for absolute positioning of dropdown if desired */
+    background-color: var(--surface-color); /* Match controls background */
+    padding: 5px 15px; /* Add some padding */
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow */
+    display: flex; /* Align label and select */
+    align-items: center;
+    gap: 10px;
+}
+
+#dirSelectDropdown, #sortOrder {
+     display: block; /* Or inline-block */
+     /* Optional: Absolute positioning for overlay effect */
+     /* position: absolute; */
+     /* z-index: 10; */
+     /* background-color: var(--surface-color); */
+     /* border: 1px solid var(--border-color); */
+     /* max-height: 200px; */
+     /* overflow-y: auto; */
+    flex-grow: 1; /* Allow dropdown to take available space */
+    background-color: var(--background-color); /* Slightly darker than container */
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#dirSelectDropdown:focus, #sortOrder:focus {
+     outline: none;
+     border-color: var(--primary-color);
+     box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
+} 

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Organiser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">    
+    <!-- Add Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* Additional inline styles for layout if needed */
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px 20px;
+            box-sizing: border-box;
+        }
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .controls label,
+        .controls input[type="text"],
+        .controls input[type="file"],
+        .controls button {
+            margin-right: 5px;
+        }
+        /* Allow directory selection */
+        input[type="file"] {
+             /* Standard way doesn't allow directory selection */
+             /* Use a trick or specific browser features if available */
+             /* Or rely on user pasting the path */
+             /* For simplicity, we use text input for path */
+        }
+
+        .thumbnail-grid {
+            flex-grow: 1;
+            overflow-y: auto; /* Enable scrolling for thumbnails */
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+        .thumbnail {
+            position: relative;
+            border: 2px solid transparent; /* For selection indication */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            background-color: var(--surface-color);
+            padding: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .thumbnail img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
+            object-fit: cover; /* Cover the area, might crop */
+        }
+        .thumbnail.selected {
+            border-color: var(--primary-color);
+        }
+        .thumbnail .filename {
+            font-size: 0.8em;
+            text-align: center;
+            margin-top: 5px;
+            word-break: break-all;
+            color: var(--text-color);
+        }
+
+        #loadingIndicator {
+            display: none; /* Hidden by default */
+            text-align: center;
+            margin-top: 20px;
+        }
+        #errorMessage {
+            color: var(--error-color);
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        #successMessage {
+            color: var(--success-color);
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+         /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: var(--background-color);
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            color: var(--text-color);
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-content label {
+             display: block;
+             margin-bottom: 8px;
+        }
+         .modal-content input[type="text"] {
+             width: calc(100% - 22px);
+             padding: 10px;
+             margin-bottom: 15px;
+             border: 1px solid var(--border-color);
+             background-color: var(--surface-color);
+             color: var(--text-color);
+             border-radius: 4px;
+         }
+        .modal-content button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        /* Style for select dropdown in modal */
+        .modal-content select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Hide manual input by default */
+        #manualPathContainer {
+            display: none;
+            margin-top: 10px; /* Add some space */
+        }
+
+        /* Style for the directory browser dropdown container */
+        #dirSelectionContainer {
+            position: relative; /* Needed for absolute positioning of dropdown if desired */
+            margin-bottom: 10px;
+        }
+        #dirSelectDropdown {
+             display: block; /* Or inline-block */
+             width: calc(100% - 100px); /* Adjust width relative to controls */
+             /* Optional: Absolute positioning for overlay effect */
+             /* position: absolute; */
+             /* z-index: 10; */
+             /* background-color: var(--surface-color); */
+             /* border: 1px solid var(--border-color); */
+             /* max-height: 200px; */
+             /* overflow-y: auto; */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Organiser</h1>
+
+        <div class="controls">
+            <label for="directoryPath">Directory:</label>
+            <input type="text" id="directoryPath" name="directoryPath" placeholder="Enter directory path (e.g., /Users/name/Pictures)" size="40">
+            <button id="loadImagesBtn" title="Load Images"><i class="fas fa-sync-alt"></i></button>
+            <span>|</span>
+            <label for="sortOrder">Sort by:</label>
+            <select id="sortOrder" name="sortOrder">
+                <option value="name" selected>Filename</option>
+                <option value="mtime">Modification Time (Newest)</option>
+            </select>
+            <span>|</span>
+            <button id="renameBtn" disabled title="Rename Selected"><i class="fas fa-pencil-alt"></i></button>
+            <button id="moveBtn" disabled title="Move Selected"><i class="fas fa-folder-open"></i> <i class="fas fa-arrow-right"></i></button>
+            <span>|</span>
+             <span id="selectionCount">0 images selected</span>
+             <button id="clearSelectionBtn" style="display: none;" title="Clear Selection"><i class="fas fa-times"></i></button>
+             <button id="selectSimilarBtn" style="display: none; margin-left: 5px;" title="Select Similar"><i class="fas fa-magic"></i></button>
+        </div>
+
+        <!-- Container for directory selection dropdown - now always visible -->
+        <div id="dirSelectionContainer">
+            <label for="dirSelectDropdown">Browse:</label>
+            <select id="dirSelectDropdown">
+                <option value="" disabled selected>Load a directory to browse</option>
+            </select>
+        </div>
+
+        <div id="loadingIndicator">Loading images...</div>
+        <div id="errorMessage" style="display: none;"></div>
+        <div id="successMessage" style="display: none;"></div>
+
+        <div class="thumbnail-grid" id="thumbnailGrid">
+            <!-- Thumbnails will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('renameModal')">&times;</span>
+            <h2>Rename Images</h2>
+            <p>Enter the new base name. Selected files will be renamed sequentially (e.g., newName001.jpg, newName002.jpg...).</p>
+            <label for="newNameInput">New Base Name:</label>
+            <input type="text" id="newNameInput" placeholder="e.g., vacation_photo">
+            <button onclick="confirmRename()">Confirm Rename</button>
+            <button onclick="closeModal('renameModal')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Move Modal -->
+    <div id="moveModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('moveModal')">&times;</span>
+            <h2>Move Images</h2>
+            <p>Select a destination folder or choose 'Enter path manually'.</p>
+            <label for="destinationSelect">Move to:</label>
+            <select id="destinationSelect" name="destinationSelect">
+                <option value="" disabled selected>Loading destinations...</option>
+                <!-- Options will be populated by JS -->
+                 <option value="__manual__">Enter path manually...</option>
+            </select>
+
+            <div id="manualPathContainer">
+                <label for="destinationPathInput">Destination Directory Path:</label>
+                <input type="text" id="destinationPathInput" placeholder="e.g., /Users/name/Pictures/Moved">
+            </div>
+
+            <button onclick="confirmMove()">Confirm Move</button>
+            <button onclick="closeModal('moveModal')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const directoryPathInput = document.getElementById('directoryPath');
+        const loadImagesBtn = document.getElementById('loadImagesBtn');
+        const thumbnailGrid = document.getElementById('thumbnailGrid');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const renameBtn = document.getElementById('renameBtn');
+        const moveBtn = document.getElementById('moveBtn');
+        const sortOrderSelect = document.getElementById('sortOrder');
+        const selectionCountSpan = document.getElementById('selectionCount');
+        const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+        const dirSelectionContainer = document.getElementById('dirSelectionContainer');
+        const dirSelectDropdown = document.getElementById('dirSelectDropdown');
+        const selectSimilarBtn = document.getElementById('selectSimilarBtn');
+
+        let currentDirectory = null; // Store the currently loaded directory
+        let selectedFiles = []; // Store paths of selected files
+
+        function displayMessage(element, message, isError = false) {
+            element.textContent = message;
+            element.style.display = message ? 'block' : 'none';
+            // Clear other message type
+            if (isError) {
+                successMessage.style.display = 'none';
+            } else {
+                errorMessage.style.display = 'none';
+            }
+            // Auto-clear message after a delay
+             setTimeout(() => {
+                 element.style.display = 'none';
+                 element.textContent = '';
+             }, 5000); // Adjust delay as needed (5 seconds)
+        }
+
+        function updateSelectionCount() {
+            const count = selectedFiles.length;
+            selectionCountSpan.textContent = `${count} image${count !== 1 ? 's' : ''} selected`;
+            renameBtn.disabled = count === 0;
+            moveBtn.disabled = count === 0;
+            clearSelectionBtn.style.display = count > 0 ? 'inline-block' : 'none';
+            selectSimilarBtn.style.display = count === 1 ? 'inline-block' : 'none';
+        }
+
+        function clearSelection() {
+             selectedFiles = [];
+             document.querySelectorAll('.thumbnail.selected').forEach(thumb => {
+                 thumb.classList.remove('selected');
+             });
+             updateSelectionCount();
+        }
+
+        function getBaseName(filename) {
+            if (!filename) return '';
+            // Remove extension
+            const nameWithoutExt = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename;
+            // Remove trailing digits
+            const baseName = nameWithoutExt.replace(/\d+$/, '');
+            return baseName;
+        }
+
+        function toggleSelection(thumbnailElement, filePath) {
+            const index = selectedFiles.findIndex(item => item.path === filePath);
+            if (index > -1) {
+                // Deselect
+                selectedFiles.splice(index, 1);
+                thumbnailElement.classList.remove('selected');
+            } else {
+                // Select
+                // Find the original image data to store if needed (for rename/move)
+                const imageData = thumbnailElement.dataset.imageData ? JSON.parse(thumbnailElement.dataset.imageData) : null;
+                if (imageData) {
+                    selectedFiles.push(imageData);
+                    thumbnailElement.classList.add('selected');
+                }
+            }
+            updateSelectionCount();
+        }
+
+        function loadImages() {
+            const directory = directoryPathInput.value.trim();
+            if (!directory) {
+                displayMessage(errorMessage, 'Please enter a directory path.', true);
+                return;
+            }
+
+            const sortBy = sortOrderSelect.value;
+
+            displayMessage(loadingIndicator, 'Loading images...');
+            displayMessage(errorMessage, '', true);
+            displayMessage(successMessage, '');
+            thumbnailGrid.innerHTML = ''; // Clear previous images
+            currentDirectory = directory; // Store current directory
+            clearSelection(); // Clear selection when loading new directory
+
+            fetch('/list_images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ directory: directory, sortBy: sortBy })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || `HTTP error! status: ${response.status}`); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+                fetchAndPopulateDirDropdown(currentDirectory); // Populate dropdown after loading images
+                if (data.images && data.images.length > 0) {
+                    data.images.forEach(image => {
+                        const thumbDiv = document.createElement('div');
+                        thumbDiv.classList.add('thumbnail');
+                        thumbDiv.dataset.filePath = image.path; // Store the full path
+                        // Store all image data needed for actions
+                        thumbDiv.dataset.imageData = JSON.stringify({ path: image.path, filename: image.filename });
+
+                        const img = document.createElement('img');
+                        img.src = image.thumbnail;
+                        img.alt = image.filename;
+                        img.onerror = () => { img.alt = 'Error loading thumbnail'; }; // Basic error handling
+
+                        const filenameSpan = document.createElement('div');
+                        filenameSpan.classList.add('filename');
+                        filenameSpan.textContent = image.filename;
+
+                        thumbDiv.appendChild(img);
+                        thumbDiv.appendChild(filenameSpan);
+
+                        thumbDiv.addEventListener('click', () => toggleSelection(thumbDiv, image.path));
+                        // Add double-click listener
+                        thumbDiv.addEventListener('dblclick', () => handleDoubleClick(image.path));
+
+                        thumbnailGrid.appendChild(thumbDiv);
+                    });
+                } else if (data.images) {
+                    thumbnailGrid.innerHTML = '<p>No images found in this directory.</p>';
+                } else {
+                     // Should have been caught by response.ok check, but handle just in case
+                    displayMessage(errorMessage, data.error || 'Failed to load images.', true);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                loadingIndicator.style.display = 'none';
+                displayMessage(errorMessage, `Error loading images: ${error.message}`, true);
+            });
+        }
+
+         // --- Modal Handling ---
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+             // Clear inputs when closing
+             if (modalId === 'renameModal') document.getElementById('newNameInput').value = '';
+             if (modalId === 'moveModal') {
+                 document.getElementById('destinationPathInput').value = '';
+                 document.getElementById('destinationSelect').value = ""; // Reset dropdown
+                 document.getElementById('manualPathContainer').style.display = 'none'; // Hide manual input
+             }
+        }
+
+        // Close modal if clicking outside of it
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModal(event.target.id);
+            }
+        }
+
+        // --- Rename Action ---
+        renameBtn.addEventListener('click', () => {
+            if (selectedFiles.length > 0) {
+                 openModal('renameModal');
+            }
+        });
+
+        function confirmRename() {
+            const newBaseName = document.getElementById('newNameInput').value.trim();
+            if (!newBaseName) {
+                alert('Please enter a new base name.');
+                return;
+            }
+            if (!currentDirectory) {
+                 displayMessage(errorMessage, 'No directory loaded.', true);
+                 closeModal('renameModal');
+                 return;
+            }
+
+            closeModal('renameModal');
+            displayMessage(loadingIndicator, 'Renaming files...');
+
+            fetch('/rename_images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: selectedFiles, // Send the selected file data (needs path)
+                    newName: newBaseName,
+                    directory: currentDirectory // Send the directory where renaming should occur
+                })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(({ status, body }) => {
+                 loadingIndicator.style.display = 'none';
+                 if (status === 200) {
+                     displayMessage(successMessage, body.message || 'Files renamed successfully.');
+                     // Reload images to reflect changes
+                     loadImages();
+                 } else {
+                     let errorDetail = body.error || (body.errors ? body.errors.join('; ') : 'Unknown error');
+                     displayMessage(errorMessage, `Rename failed: ${errorDetail}`, true);
+                     // Optionally, reload images even on partial success/failure if needed
+                     if (body.renamed && Object.keys(body.renamed).length > 0) {
+                          setTimeout(loadImages, 1000); // Reload after a short delay
+                     }
+                 }
+            })
+            .catch(error => {
+                console.error('Rename Fetch Error:', error);
+                loadingIndicator.style.display = 'none';
+                displayMessage(errorMessage, `Rename request failed: ${error.message}`, true);
+            });
+        }
+
+         // --- Move Action ---
+        moveBtn.addEventListener('click', () => {
+            if (selectedFiles.length > 0 && currentDirectory) {
+                 openModal('moveModal');
+                 fetchDestinations(currentDirectory);
+            } else if (!currentDirectory) {
+                 displayMessage(errorMessage, 'Please load a directory first.', true);
+            }
+        });
+
+         function fetchDestinations(directory) {
+            const selectElement = document.getElementById('destinationSelect');
+            const manualPathContainer = document.getElementById('manualPathContainer');
+            selectElement.innerHTML = '<option value="" disabled selected>Loading destinations...</option><option value="__manual__">Enter path manually...</option>'; // Reset with loading
+            manualPathContainer.style.display = 'none'; // Ensure manual is hidden initially
+
+             fetch('/list_directories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ directory: directory })
+            })
+            .then(response => {
+                 if (!response.ok) {
+                     return response.json().then(err => { throw new Error(err.error || `HTTP error! status: ${response.status}`); });
+                 }
+                 return response.json();
+             })
+            .then(data => {
+                 selectElement.innerHTML = ''; // Clear loading message
+                 if (data.destinations && data.destinations.length > 0) {
+                     data.destinations.forEach(dest => {
+                         const option = document.createElement('option');
+                         option.value = dest.path;
+                         option.textContent = dest.name;
+                         selectElement.appendChild(option);
+                     });
+                 } else {
+                      // Add a placeholder if no subfolders/parent found
+                      const option = document.createElement('option');
+                      option.value = "";
+                      option.textContent = "No subfolders found";
+                      option.disabled = true;
+                      selectElement.appendChild(option);
+                 }
+                  // Add the manual option at the end
+                 const manualOption = document.createElement('option');
+                 manualOption.value = "__manual__";
+                 manualOption.textContent = "Enter path manually...";
+                 selectElement.appendChild(manualOption);
+
+                 // Add event listener to toggle manual input
+                 selectElement.onchange = () => {
+                     if (selectElement.value === '__manual__') {
+                         manualPathContainer.style.display = 'block';
+                     } else {
+                         manualPathContainer.style.display = 'none';
+                     }
+                 };
+            })
+            .catch(error => {
+                console.error('Fetch Destinations Error:', error);
+                selectElement.innerHTML = '<option value="" disabled selected>Error loading destinations</option><option value="__manual__">Enter path manually...</option>';
+                 displayMessage(errorMessage, `Error loading destinations: ${error.message}`, true);
+                  selectElement.onchange = () => { // Still allow manual entry on error
+                     if (selectElement.value === '__manual__') {
+                         manualPathContainer.style.display = 'block';
+                     } else {
+                         manualPathContainer.style.display = 'none';
+                     }
+                 };
+            });
+        }
+
+         function confirmMove() {
+            const selectElement = document.getElementById('destinationSelect');
+            const manualInputElement = document.getElementById('destinationPathInput');
+            let destinationPath = "";
+
+            if (selectElement.value === '__manual__') {
+                destinationPath = manualInputElement.value.trim();
+                if (!destinationPath) {
+                    alert('Please enter a destination directory path manually.');
+                    return;
+                }
+            } else {
+                destinationPath = selectElement.value;
+                if (!destinationPath) {
+                    alert('Please select a destination folder from the list.');
+                    return;
+                }
+            }
+
+            if (!destinationPath) {
+                alert('Please enter a destination directory path.');
+                return;
+            }
+             if (!currentDirectory) {
+                 displayMessage(errorMessage, 'No source directory loaded.', true);
+                 closeModal('moveModal');
+                 return;
+            }
+
+            closeModal('moveModal');
+            displayMessage(loadingIndicator, 'Moving files...');
+
+            fetch('/move_images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: selectedFiles, // Send selected file data (needs path)
+                    destination: destinationPath,
+                    sourceDirectory: currentDirectory // Send the source directory
+                })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(({ status, body }) => {
+                 loadingIndicator.style.display = 'none';
+                 if (status === 200) {
+                     displayMessage(successMessage, body.message || 'Files moved successfully.');
+                     // Reload images in the source directory to reflect changes
+                     loadImages();
+                 } else {
+                      let errorDetail = body.error || (body.errors ? body.errors.join('; ') : 'Unknown error');
+                     displayMessage(errorMessage, `Move failed: ${errorDetail}`, true);
+                      // Optionally, reload images even on partial success/failure
+                     if (body.moved && Object.keys(body.moved).length > 0) {
+                          setTimeout(loadImages, 1000); // Reload after a short delay
+                     }
+                 }
+            })
+            .catch(error => {
+                console.error('Move Fetch Error:', error);
+                loadingIndicator.style.display = 'none';
+                displayMessage(errorMessage, `Move request failed: ${error.message}`, true);
+            });
+        }
+
+        // --- Event Listeners ---
+        loadImagesBtn.addEventListener('click', loadImages);
+        clearSelectionBtn.addEventListener('click', clearSelection);
+
+        // Reload images if sort order changes while a directory is loaded
+        sortOrderSelect.addEventListener('change', () => {
+            if (currentDirectory) {
+                loadImages();
+            }
+        });
+
+        // Optional: Load images if path entered and Enter key is pressed
+        directoryPathInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                loadImages();
+            }
+        });
+
+        // Initial state setup
+        updateSelectionCount();
+
+        // --- Directory Browser --- Functionality
+        function fetchAndPopulateDirDropdown(directory) {
+            if (!directory) { // Don't fetch if directory is invalid/empty after load attempt
+                dirSelectDropdown.innerHTML = '<option value="" disabled selected>Load a directory to browse</option>';
+                return;
+            }
+            dirSelectDropdown.innerHTML = '<option value="" disabled selected>Loading...</option>';
+
+            fetch('/list_directories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ directory: directory })
+            })
+            .then(response => response.ok ? response.json() : response.json().then(err => { throw new Error(err.error); }))
+            .then(data => {
+                dirSelectDropdown.innerHTML = ''; // Clear loading
+
+                // Add option for the current directory itself
+                const currentOption = document.createElement('option');
+                currentOption.value = directory; // Use the path passed to the function
+                currentOption.textContent = `Current: ${directory}`; // Display the path
+                dirSelectDropdown.appendChild(currentOption);
+
+                if (data.destinations && data.destinations.length > 0) {
+                    data.destinations.forEach(dest => {
+                        const option = document.createElement('option');
+                        option.value = dest.path;
+                        option.textContent = dest.name;
+                        dirSelectDropdown.appendChild(option);
+                    });
+                } else {
+                    // Maybe indicate no sub/parent found, but current is still there
+                }
+                // Set the 'current' path as selected initially
+                dirSelectDropdown.value = directory;
+            })
+            .catch(error => {
+                console.error('Fetch Dirs Error:', error);
+                dirSelectDropdown.innerHTML = `<option value="" disabled selected>Error: ${error.message}</option>`;
+                // Don't hide on error anymore
+            });
+        }
+
+        dirSelectDropdown.addEventListener('change', () => {
+            const selectedPath = dirSelectDropdown.value;
+            if (selectedPath) {
+                directoryPathInput.value = selectedPath; // Update the text input
+                loadImages(); // Load images for the selected path
+            }
+        });
+
+        // --- Select Similar Action ---
+        selectSimilarBtn.addEventListener('click', () => {
+            if (selectedFiles.length !== 1) {
+                // Should not happen if button visibility is correct, but safeguard
+                return;
+            }
+
+            const selectedFilename = selectedFiles[0].filename;
+            const baseNameToMatch = getBaseName(selectedFilename);
+            if (!baseNameToMatch) {
+                displayMessage(errorMessage, "Could not determine base name for selection.", true);
+                return;
+            }
+
+            const allThumbnails = document.querySelectorAll('.thumbnail:not(.selected)'); // Only check non-selected ones
+
+            allThumbnails.forEach(thumb => {
+                try {
+                    const imageData = JSON.parse(thumb.dataset.imageData);
+                    const currentFilename = imageData.filename;
+                    const currentBaseName = getBaseName(currentFilename);
+
+                    if (currentBaseName === baseNameToMatch) {
+                        // Manually select without triggering toggleSelection logic again here
+                        selectedFiles.push(imageData);
+                        thumb.classList.add('selected');
+                    }
+                } catch (e) {
+                     console.error("Error parsing image data for similar selection:", thumb.dataset.imageData, e);
+                }
+            });
+
+            updateSelectionCount(); // Update count and button states
+        });
+
+        function handleDoubleClick(filePath) {
+            console.log("Double-clicked:", filePath);
+            // Send request to backend to open the file
+            fetch('/open_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: filePath })
+            })
+            .then(response => response.json().then(data => {
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error ${response.status}`);
+                }
+                return data;
+            }))
+            .then(data => {
+                console.log("Open command response:", data.message);
+                // Optionally show a brief success message (or only show errors)
+                // displayMessage(successMessage, data.message || "Open command issued.");
+            })
+            .catch(error => {
+                console.error('Open Image Error:', error);
+                displayMessage(errorMessage, `Could not open image: ${error.message}`, true);
+            });
+        }
+
+    </script>
+</body>
+</html> 
